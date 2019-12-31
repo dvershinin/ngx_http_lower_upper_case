@@ -1,12 +1,20 @@
-Nginx lower-/uppercase
--------
+# NGINX Case module
 
 This module simply uppercases or lowercases a string and saves it into a new variable.
 
-It knows only two directives: upper and lower
+It knows only two directives: `upper` and `lower`.
 
-Example
-===============
+## Examples
+
+1. Redirect uppercase to lowercase URLs
+
+        lower $uri_lower $uri;
+    
+        location ~ [A-Z] {
+            return 301 http://localhost$uri_lower;
+        }
+
+2. Set variables 
 
         set $var1 "hello";
         set $var2 "WORLD";

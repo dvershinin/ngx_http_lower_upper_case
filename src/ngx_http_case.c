@@ -8,7 +8,7 @@
 typedef struct {
     ngx_conf_t                     *cf;
     ngx_array_t                    *lucases;
-} ngx_http_lower_upper_case_conf_t;
+} ngx_http_case_conf_t;
 
 typedef struct {
     uintptr_t                       action:1;
@@ -18,14 +18,14 @@ typedef struct {
 } ngx_http_lucase_t;
 
 // create confs
-static void *ngx_http_lower_upper_case_create_loc_conf(ngx_conf_t *cf);
-static char *ngx_http_lower_upper_case_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child);
+static void *ngx_http_case_create_loc_conf(ngx_conf_t *cf);
+static char *ngx_http_case_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child);
 
 static char *ngx_http_lower_upper_directive(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static ngx_int_t ngx_http_do_lower_upper(ngx_http_request_t *r, ngx_http_variable_value_t *v, uintptr_t data);
 
 
-static ngx_command_t ngx_http_lower_upper_case_commands[] = {
+static ngx_command_t ngx_http_case_commands[] = {
   { ngx_string("upper"),
     NGX_HTTP_LOC_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_MAIN_CONF|NGX_CONF_TAKE2,
     ngx_http_lower_upper_directive,
@@ -41,7 +41,7 @@ static ngx_command_t ngx_http_lower_upper_case_commands[] = {
     ngx_null_command
 };
 
-static ngx_http_module_t ngx_http_lower_upper_case_module_ctx = {
+static ngx_http_module_t ngx_http_case_module_ctx = {
     NULL,
     NULL,
 
@@ -51,14 +51,14 @@ static ngx_http_module_t ngx_http_lower_upper_case_module_ctx = {
     NULL,
     NULL,
 
-    ngx_http_lower_upper_case_create_loc_conf,
-    ngx_http_lower_upper_case_merge_loc_conf
+    ngx_http_case_create_loc_conf,
+    ngx_http_case_merge_loc_conf
 };
 
-ngx_module_t ngx_http_lower_upper_case_module = {
+ngx_module_t ngx_http_case_module = {
     NGX_MODULE_V1,
-    &ngx_http_lower_upper_case_module_ctx,
-    ngx_http_lower_upper_case_commands,
+    &ngx_http_case_module_ctx,
+    ngx_http_case_commands,
     NGX_HTTP_MODULE,
     NULL,
     NULL,
@@ -71,16 +71,16 @@ ngx_module_t ngx_http_lower_upper_case_module = {
 };
 
 static void *
-ngx_http_lower_upper_case_create_loc_conf(ngx_conf_t *cf)
+ngx_http_case_create_loc_conf(ngx_conf_t *cf)
 {
-    ngx_http_lower_upper_case_conf_t   *lucf;
+    ngx_http_case_conf_t   *lucf;
 
-    lucf = ngx_pcalloc(cf->pool, sizeof(ngx_http_lower_upper_case_conf_t));
+    lucf = ngx_pcalloc(cf->pool, sizeof(ngx_http_case_conf_t));
     if (lucf == NULL)
     {
         return NGX_CONF_ERROR;
     }
-    
+
     lucf->cf = cf;
     lucf->lucases = NULL;
 
@@ -88,10 +88,10 @@ ngx_http_lower_upper_case_create_loc_conf(ngx_conf_t *cf)
 }
 
 static char *
-ngx_http_lower_upper_case_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
+ngx_http_case_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
 {
-    ngx_http_lower_upper_case_conf_t   *prev = parent;
-    ngx_http_lower_upper_case_conf_t   *conf = child;
+    ngx_http_case_conf_t   *prev = parent;
+    ngx_http_case_conf_t   *conf = child;
 
     if (prev->lucases != NULL)
     {
@@ -104,7 +104,7 @@ ngx_http_lower_upper_case_merge_loc_conf(ngx_conf_t *cf, void *parent, void *chi
 static char *
 ngx_http_lower_upper_directive(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
-    ngx_http_lower_upper_case_conf_t       *lucf = conf;
+    ngx_http_case_conf_t       *lucf = conf;
     ngx_http_lucase_t                      *lucase;
     ngx_str_t                              *variable;
     ngx_http_script_compile_t               sc;
@@ -171,21 +171,17 @@ ngx_http_lower_upper_directive(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 static ngx_int_t
 ngx_http_do_lower_upper(ngx_http_request_t *r, ngx_http_variable_value_t *dst_v, uintptr_t data)
 {
-    ngx_http_lower_upper_case_conf_t       *lucf = ngx_http_get_module_loc_conf(r, ngx_http_lower_upper_case_module);
+    ngx_http_case_conf_t       *lucf = ngx_http_get_module_loc_conf(r, ngx_http_case_module);
     ngx_uint_t                              i;
-    //u_char                                 *tmp_void;
     ngx_http_lucase_t                      *lucase;
 
-    //tmp_void = lucf->lucases->elts;
-    //lucase = (ngx_http_lucase_t*) (tmp_void + (data * lucf->lucases->size));
-    
     lucase = (ngx_http_lucase_t*) ((u_char*)lucf->lucases->elts + (data * lucf->lucases->size));
 
     if (ngx_http_script_run(r, lucase->src_variable, lucase->src_lengths->elts, 0, lucase->src_values->elts) == NULL) {
         ngx_log_error(NGX_LOG_INFO, r->connection->log, 0, "source evaluation failed");
         return NGX_ERROR;
     }
-    
+
     dst_v->len = lucase->src_variable->len;
 
     dst_v->data = ngx_pcalloc(r->pool, lucase->src_variable->len);
